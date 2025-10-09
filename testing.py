@@ -17,14 +17,6 @@ except ImportError:
     OLLAMA_AVAILABLE = False
     print("[WARNING] Ollama not installed. Install with: pip3 install ollama")
 
-# Coqui TTS
-try:
-    from TTS.api import TTS
-    COQUI_AVAILABLE = True
-except ImportError:
-    COQUI_AVAILABLE = False
-    print("[WARNING] Coqui TTS not installed. Install with: pip3 install TTS")
-
 # Optional: Face recognition (can work without it)
 FACE_RECOGNITION_AVAILABLE = False
 try:
@@ -57,13 +49,8 @@ SERVO_MIN = 0
 SERVO_MAX = 180
 STEP_DELAY = 0.05
 INTERPOLATION_STEPS = 20
-
-# TTS configuration
-TTS_ENGINE = os.getenv("TTS_ENGINE", "coqui")  # "coqui" or "pyttsx3"
-COQUI_MODEL = os.getenv("COQUI_MODEL", "tts_models/en/ljspeech/tacotron2-DDC")
-DEFAULT_TTS_RATE = int(os.getenv("TTS_RATE", "150"))
-DEFAULT_TTS_VOLUME = float(os.getenv("TTS_VOLUME", "1.0"))
-DEFAULT_TTS_VOICE = os.getenv("TTS_VOICE", "com.apple.voice.compact.en-US.Samantha")
+DEFAULT_TTS_RATE = 150
+DEFAULT_TTS_VOLUME = 1.0
 
 # Face recognition settings
 FACE_RECOGNITION_ENABLED = True
@@ -148,16 +135,11 @@ def log_event(event_type, message):
 def initialize_tts():
     """Initialize TTS engine with error handling"""
     try:
-        if TTS_ENGINE == "coqui" and COQUI_AVAILABLE:
-            tts = TTS(model_name=COQUI_MODEL)
-            log_event("INFO", f"Coqui TTS initialized with model: {COQUI_MODEL}")
-            return tts
-        else:
-            engine = pyttsx3.init()
-            engine.setProperty("rate", DEFAULT_TTS_RATE)
-            engine.setProperty("volume", DEFAULT_TTS_VOLUME)
-            log_event("INFO", "pyttsx3 TTS engine initialized")
-            return engine
+        engine = pyttsx3.init()
+        engine.setProperty("rate", DEFAULT_TTS_RATE)
+        engine.setProperty("volume", DEFAULT_TTS_VOLUME)
+        log_event("INFO", "TTS engine initialized successfully")
+        return engine
     except Exception as e:
         log_event("ERROR", f"Failed to initialize TTS engine: {e}")
         return None
@@ -393,43 +375,22 @@ def speak_text(text):
     """Speak text using TTS"""
     print(f"[TTS] {text}")
     
-    if not tts_engine:
-        log_event("WARNING", "TTS engine not available")
-        return
-    
     try:
-        if TTS_ENGINE == "coqui" and COQUI_AVAILABLE:
-            # Use Coqui TTS
-            import tempfile
-            import os as os_module
-            
-            # Generate audio to temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as f:
-                temp_path = f.name
-            
-            tts_engine.tts_to_file(text=text, file_path=temp_path)
-            
-            # Play audio using afplay (Mac)
-            import subprocess
-            subprocess.run(['afplay', temp_path], check=True)
-            
-            # Clean up
-            os_module.remove(temp_path)
-        else:
-            # Use pyttsx3 with subprocess
-            import subprocess
-            import sys
-            
-            tts_command = f"""
+        # Use subprocess to run TTS in separate process (more reliable on Mac)
+        import subprocess
+        import sys
+        
+        # Create a simple Python command to speak
+        tts_command = f"""
 import pyttsx3
 engine = pyttsx3.init()
 engine.setProperty('rate', {DEFAULT_TTS_RATE})
 engine.setProperty('volume', {DEFAULT_TTS_VOLUME})
-engine.setProperty('voice', '{DEFAULT_TTS_VOICE}')
 engine.say({repr(text)})
 engine.runAndWait()
 """
-            subprocess.run([sys.executable, '-c', tts_command], check=True)
+        
+        subprocess.run([sys.executable, '-c', tts_command], check=True)
         
     except Exception as e:
         log_event("ERROR", f"TTS failed: {e}")
@@ -450,24 +411,15 @@ Return ONLY a valid JSON object with:
 - servo names as keys with lists of positions (0-180 degrees) as values
 - a 'speech' key with a natural, conversational response (1-2 sentences)
 
-CRITICAL RULES:
-- ALL servo positions MUST be integers between 0 and 180 (inclusive)
-- NO negative numbers allowed
-- Use 2-5 positions per servo
-- Match movements to emotion
-
 Available servos: left_arm, right_arm, head, jaw, eyebrow_left, eyebrow_right, mouth_left, mouth_right.
+Keep movements smooth, expressive, and safe. Use 2-5 positions per servo.
+Match the movement to the emotion/content of your response.
 
-Example valid JSON:
-{
-  "left_arm": [90, 70, 90],
-  "right_arm": [90, 110, 90],
-  "head": [90, 80, 100, 90],
-  "jaw": [0, 30, 0],
-  "eyebrow_left": [0, 45, 0],
-  "eyebrow_right": [0, 45, 0],
-  "speech": "Hello! Great to meet you!"
-}"""
+Examples:
+- Happy response: raise eyebrows, tilt head slightly, maybe raise arms
+- Thinking: tilt head, slight eyebrow movement
+- Excited: more dramatic arm and head movements
+- Neutral chat: subtle head nods or tilts"""
     
     try:
         log_event("INFO", f"Asking Ollama ({OLLAMA_MODEL})...")
