@@ -1,0 +1,8 @@
+[14:04:07 2025-10-10] FETCHING Version 2.42.0
+[14:04:07 2025-10-10] DOWNLOADING https://github.com/spicetify/cli/releases/download/v2.42.0/spicetify-2.42.0-darwin-arm64.tar.gz
+[14:04:12 2025-10-10] EXTRACTING /Users/izzy/.spicetify/spicetify.tar.gz
+[14:04:12 2025-10-10] SETTING EXECUTABLE PERMISSIONS TO /Users/izzy/.spicetify/spicetify
+[14:04:12 2025-10-10] REMOVING /Users/izzy/.spicetify/spicetify.tar.gz
+[14:04:12 2025-10-10] spicetify path already set in /Users/izzy/.zshrc, continuing...
+[14:04:12 2025-10-10] spicetify v2.42.0 was installed successfully to /Users/izzy/.spicetify
+[14:04:12 2025-10-10] Run 'spicetify --help' to get started
